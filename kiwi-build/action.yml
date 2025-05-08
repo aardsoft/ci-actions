@@ -1,0 +1,30 @@
+name: 'Kiwi build'
+description: 'Build using kiwi'
+
+inputs:
+  image-directory:
+    required: True
+  target-directory:
+    required: True
+    default: ""
+  repository:
+    required: True
+    default: https://download.opensuse.org/distribution/leap/15.6/repo/oss
+  extra-repositories:
+    required: True
+    default: ""
+  source-image:
+    required: True
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - run: ${{github.action_path}}/build-kiwi-container.sh
+      shell: bash
+      env:
+        image_dir: ${{inputs.image-directory}}
+        target_dir: ${{inputs.target-directory}}
+        repository: ${{inputs.repository}}
+        extra_repos: ${{inputs.extra-repositories}}
+        source_image: ${{inputs.source-image}}
