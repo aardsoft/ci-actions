@@ -16,6 +16,9 @@ inputs:
   source-image:
     required: True
     default: ""
+  kiwi-extra-args::
+    required: True
+    default: ""
 
 runs:
   using: "composite"
@@ -28,3 +31,4 @@ runs:
         repository: ${{inputs.repository}}
         extra_repos: ${{inputs.extra-repositories}}
         source_image: ${{inputs.source-image}}
+        kiwi_extra_args: ${{inputs.kiwi-extra-args}}
