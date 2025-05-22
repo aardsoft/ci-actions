@@ -35,7 +35,7 @@ if [ -n "${_derived_container}" ]; then
     fi
 fi
 
-sudo $TRACE kiwi-ng system build --description "`pwd`"  `if [ -n "${kiwi_extra_args}" ]; then ${kiwi_extra_args}; fi` \
+sudo $TRACE kiwi-ng `if [ -n "${kiwi_debug}" ]; then echo -n "--debug"; fi` system build --description "`pwd`"  `if [ -n "${kiwi_extra_args}" ]; then ${kiwi_extra_args}; fi` \
      --set-repo ${repository} `for r in $extra_repos; do echo -n " --add-repo $r "; done` \
      --target-dir ${target_dir}/${_image_name} `if [ -n "${_derived_file_path}" ]; then echo -n " --set-container-derived-from file://${_derived_file_path} "; fi` \
      --add-container-label="name=${_container_name}" --set-container-tag="${_container_tag}"

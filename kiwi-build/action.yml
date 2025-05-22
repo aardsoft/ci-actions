@@ -19,6 +19,9 @@ inputs:
   kiwi-extra-args::
     required: True
     default: ""
+  kiwi-debug:
+    required: True
+    default: ""
 
 runs:
   using: "composite"
@@ -32,3 +35,4 @@ runs:
         extra_repos: ${{inputs.extra-repositories}}
         source_image: ${{inputs.source-image}}
         kiwi_extra_args: ${{inputs.kiwi-extra-args}}
+        kiwi_debug: ${{inputs.kiwi-debug}}
