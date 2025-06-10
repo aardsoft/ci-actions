@@ -16,7 +16,7 @@ inputs:
   source-image:
     required: True
     default: ""
-  kiwi-extra-args::
+  kiwi-extra-args:
     required: True
     default: ""
   kiwi-debug:
