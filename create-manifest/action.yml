@@ -1,0 +1,36 @@
+name: 'Create multi-arch manifest'
+description: 'Assemble and push a multi-arch OCI manifest from arch-specific images'
+
+inputs:
+  container-name:
+    description: 'Full container image name (e.g. ghcr.io/org/image)'
+    required: true
+  container-tag:
+    description: 'Version tag from kiwi metadata'
+    required: true
+  architectures:
+    description: 'Space-separated list of architectures (e.g. "amd64 aarch64")'
+    required: true
+  git-tag:
+    description: 'Git tag to push in addition to version tag and latest'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: 'Login to GitHub Container Registry'
+      uses: redhat-actions/podman-login@v1
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+
+    - name: 'Create and push manifest'
+      run: ${{ github.action_path }}/create-manifest.sh
+      shell: bash
+      env:
+        container_name: ${{ inputs.container-name }}
+        container_tag: ${{ inputs.container-tag }}
+        architectures: ${{ inputs.architectures }}
+        git_tag: ${{ inputs.git-tag }}

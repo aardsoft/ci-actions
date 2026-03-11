@@ -25,11 +25,28 @@ inputs:
   git-tag:
     required: False
     default: ""
+  target-arch:
+    description: 'Target architecture for cross-arch builds (e.g. aarch64). Requires qemu-linux-user in the runner image.'
+    required: False
+    default: ""
+  arch-suffix:
+    description: 'Push image as :tag-<suffix> instead of :tag/:latest. Used in multi-arch builds; manifest creation handles the unified tags.'
+    required: False
+    default: ""
+
+outputs:
+  container-name:
+    description: 'Container image name read from kiwi metadata'
+    value: ${{ steps.build.outputs.container_name }}
+  container-tag:
+    description: 'Container version tag read from kiwi metadata'
+    value: ${{ steps.build.outputs.container_tag }}
 
 runs:
   using: "composite"
   steps:
-    - run: ${{github.action_path}}/build-kiwi-container.sh
+    - id: build
+      run: ${{github.action_path}}/build-kiwi-container.sh
       shell: bash
       env:
         image_dir: ${{inputs.image-directory}}
@@ -40,3 +57,5 @@ runs:
         kiwi_extra_args: ${{inputs.kiwi-extra-args}}
         kiwi_debug: ${{inputs.kiwi-debug}}
         git_tag: ${{inputs.git-tag}}
+        target_arch: ${{inputs.target-arch}}
+        arch_suffix: ${{inputs.arch-suffix}}

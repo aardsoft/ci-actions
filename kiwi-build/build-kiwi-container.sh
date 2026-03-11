@@ -7,6 +7,20 @@ fi
 
 cd ${image_dir}
 _arch=`uname -m`
+_target_arch=${target_arch:-${_arch}}
+
+if [ "${_target_arch}" != "${_arch}" ]; then
+    if [ "${_target_arch}" = "aarch64" ]; then
+        # binfmt_misc may not be mounted in the container; mount it if needed
+        mount binfmt_misc -t binfmt_misc /proc/sys/fs/binfmt_misc 2>/dev/null || true
+        # Register qemu-aarch64 with the F (fix-binary) flag so it works inside kiwi chroots
+        if [ ! -f /proc/sys/fs/binfmt_misc/qemu-aarch64 ]; then
+            echo ':qemu-aarch64:M::\x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\xb7\x00:\xff\xff\xff\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/usr/bin/qemu-aarch64:F' \
+                > /proc/sys/fs/binfmt_misc/register
+        fi
+    fi
+fi
+
 # for now we just hope that for multiple kiwi files the first one is what we want
 _kiwi_file=(*.kiwi)
 _image_specification=`xmllint --xpath 'string(//specification)' ${_kiwi_file}`
@@ -25,7 +39,7 @@ if [ -n "${_derived_container}" ]; then
     _derived_file=`basename ${_derived_container}`
     _derived_file_base=`echo ${_derived_file} | awk -F ':' '{print $1}'`
     _derived_file_tag=`echo ${_derived_file} | awk -F ':' '{print $2}'`
-    _derived_file_path="${_image_cache}/${_derived_file_base}.${_arch}-${_derived_file_tag}.docker.tar"
+    _derived_file_path="${_image_cache}/${_derived_file_base}.${_target_arch}-${_derived_file_tag}.docker.tar"
 
     if [ -f "${_derived_file_path}" ]; then
         echo "exists"
@@ -36,22 +50,31 @@ if [ -n "${_derived_container}" ]; then
 fi
 
 sudo $TRACE kiwi-ng `if [ -n "${kiwi_debug}" ]; then echo -n "--debug"; fi` system build --description "`pwd`"  `if [ -n "${kiwi_extra_args}" ]; then ${kiwi_extra_args}; fi` \
+     `if [ "${_target_arch}" != "${_arch}" ]; then echo -n "--target-arch ${_target_arch}"; fi` \
      --set-repo ${repository} `for r in $extra_repos; do echo -n " --add-repo $r "; done` \
      --target-dir ${target_dir}/${_image_name} `if [ -n "${_derived_file_path}" ]; then echo -n " --set-container-derived-from file://${_derived_file_path} "; fi` \
      --add-container-label="name=${_container_name}" --set-container-tag="${_container_tag}"
-if [ -f ${target_dir}/${_image_name}/${_image_name}.${_arch}-${_image_version}.docker.tar ]; then
-    _container_archive=${target_dir}/${_image_name}/${_image_name}.${_arch}-${_image_version}.docker.tar
-elif [ -f ${target_dir}/${_image_name}/${_image_name}.${_arch}-${_image_version}.docker.tar.xz ]; then
-    _container_archive=${target_dir}/${_image_name}/${_image_name}.${_arch}-${_image_version}.docker.tar.xz
+if [ -f ${target_dir}/${_image_name}/${_image_name}.${_target_arch}-${_image_version}.docker.tar ]; then
+    _container_archive=${target_dir}/${_image_name}/${_image_name}.${_target_arch}-${_image_version}.docker.tar
+elif [ -f ${target_dir}/${_image_name}/${_image_name}.${_target_arch}-${_image_version}.docker.tar.xz ]; then
+    _container_archive=${target_dir}/${_image_name}/${_image_name}.${_target_arch}-${_image_version}.docker.tar.xz
 else
     echo "Can't locate container archive"
     exit 1
 fi
 
+echo "container_name=${_container_name}" >> ${GITHUB_OUTPUT}
+echo "container_tag=${_container_tag}" >> ${GITHUB_OUTPUT}
+
 podman load -i ${_container_archive}
-podman push ${_container_name}:${_container_tag}
-podman push ${_container_name}:${_container_tag} ${_container_name}:latest
-if [ -n "${git_tag}" ]; then
-    podman push ${_container_name}:${_container_tag} ${_container_name}:${git_tag}
+if [ -n "${arch_suffix}" ]; then
+    # Arch-specific push only; manifest creation handles :latest and :git_tag
+    podman push ${_container_name}:${_container_tag} ${_container_name}:${_container_tag}-${arch_suffix}
+else
+    podman push ${_container_name}:${_container_tag}
+    podman push ${_container_name}:${_container_tag} ${_container_name}:latest
+    if [ -n "${git_tag}" ]; then
+        podman push ${_container_name}:${_container_tag} ${_container_name}:${git_tag}
+    fi
 fi
 sudo mv ${_container_archive} ${_image_cache}/
