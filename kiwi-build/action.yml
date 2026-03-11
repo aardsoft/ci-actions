@@ -16,6 +16,10 @@ inputs:
   source-image:
     required: True
     default: ""
+  kiwi-profile:
+    description: 'kiwi-ng --profile value (global option, placed before the subcommand)'
+    required: False
+    default: ""
   kiwi-extra-args:
     required: True
     default: ""
@@ -54,6 +58,7 @@ runs:
         repository: ${{inputs.repository}}
         extra_repos: ${{inputs.extra-repositories}}
         source_image: ${{inputs.source-image}}
+        kiwi_profile: ${{inputs.kiwi-profile}}
         kiwi_extra_args: ${{inputs.kiwi-extra-args}}
         kiwi_debug: ${{inputs.kiwi-debug}}
         git_tag: ${{inputs.git-tag}}

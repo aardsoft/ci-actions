@@ -21,6 +21,10 @@ inputs:
     description: 'Push image with this arch suffix only; used in native multi-arch workflows where manifest creation is a separate job'
     required: False
     default: ''
+  kiwi-profile:
+    description: 'kiwi-ng --profile value (global option, placed before the subcommand)'
+    required: False
+    default: ''
   kiwi-extra-args:
     required: False
     default: ''
@@ -53,6 +57,7 @@ runs:
         image-directory: ${{ inputs.image-directory }}
         repository: ${{ inputs.repository }}
         extra-repositories: ${{ inputs.extra-repositories }}
+        kiwi-profile: ${{ inputs.kiwi-profile }}
         kiwi-extra-args: ${{ inputs.kiwi-extra-args }}
         kiwi-debug: ${{ inputs.kiwi-debug }}
         # Pass git-tag only in single-arch mode; multi-arch mode delegates to manifest creation
@@ -67,6 +72,7 @@ runs:
         image-directory: ${{ inputs.image-directory }}
         repository: ${{ inputs.repository }}
         extra-repositories: ${{ inputs.extra-repositories }}
+        kiwi-profile: ${{ inputs.kiwi-profile }}
         kiwi-extra-args: ${{ inputs.kiwi-extra-args }}
         kiwi-debug: ${{ inputs.kiwi-debug }}
         target-arch: aarch64
