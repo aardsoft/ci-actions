@@ -19,13 +19,6 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: 'Login to GitHub Container Registry'
-      uses: redhat-actions/podman-login@v1
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ github.token }}
-
     - name: 'Create and push manifest'
       run: ${{ github.action_path }}/create-manifest.sh
       shell: bash
