@@ -53,14 +53,23 @@ fi
 echo "container_name=${_container_name}" >> ${GITHUB_OUTPUT}
 echo "container_tag=${_container_tag}" >> ${GITHUB_OUTPUT}
 
+if [ "${_target_arch}" != "${_arch}" ]; then
+    case "${_target_arch}" in
+        aarch64) _oci_arch="arm64"; _oci_variant="v8" ;;
+        *)       _oci_arch="${_target_arch}"; _oci_variant="" ;;
+    esac
+    sudo chmod a+w $(dirname ${_container_archive})
+    python3 ${GITHUB_ACTION_PATH}/fix-oci-arch.py ${_container_archive} ${_oci_arch} ${_oci_variant}
+fi
+
 if [ -n "${arch_suffix}" ]; then
     # Arch-specific push only; manifest creation handles :latest and :git_tag
     skopeo copy docker-archive:${_container_archive} docker://${_container_name}:${_container_tag}-${arch_suffix}
 else
     skopeo copy docker-archive:${_container_archive} docker://${_container_name}:${_container_tag}
-    skopeo copy docker-archive:${_container_archive} docker://${_container_name}:latest
+    skopeo copy docker://${_container_name}:${_container_tag} docker://${_container_name}:latest
     if [ -n "${git_tag}" ]; then
-        skopeo copy docker-archive:${_container_archive} docker://${_container_name}:${git_tag}
+        skopeo copy docker://${_container_name}:${_container_tag} docker://${_container_name}:${git_tag}
     fi
 fi
 sudo mv ${_container_archive} ${_image_cache}/
