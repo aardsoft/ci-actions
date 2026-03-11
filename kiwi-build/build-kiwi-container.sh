@@ -51,4 +51,7 @@ fi
 podman load -i ${_container_archive}
 podman push ${_container_name}:${_container_tag}
 podman push ${_container_name}:${_container_tag} ${_container_name}:latest
+if [ -n "${git_tag}" ]; then
+    podman push ${_container_name}:${_container_tag} ${_container_name}:${git_tag}
+fi
 sudo mv ${_container_archive} ${_image_cache}/

@@ -22,6 +22,9 @@ inputs:
   kiwi-debug:
     required: True
     default: ""
+  git-tag:
+    required: False
+    default: ""
 
 runs:
   using: "composite"
@@ -36,3 +39,4 @@ runs:
         source_image: ${{inputs.source-image}}
         kiwi_extra_args: ${{inputs.kiwi-extra-args}}
         kiwi_debug: ${{inputs.kiwi-debug}}
+        git_tag: ${{inputs.git-tag}}
