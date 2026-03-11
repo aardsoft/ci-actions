@@ -53,15 +53,14 @@ fi
 echo "container_name=${_container_name}" >> ${GITHUB_OUTPUT}
 echo "container_tag=${_container_tag}" >> ${GITHUB_OUTPUT}
 
-podman load -i ${_container_archive}
 if [ -n "${arch_suffix}" ]; then
     # Arch-specific push only; manifest creation handles :latest and :git_tag
-    podman push ${_container_name}:${_container_tag} ${_container_name}:${_container_tag}-${arch_suffix}
+    skopeo copy docker-archive:${_container_archive} docker://${_container_name}:${_container_tag}-${arch_suffix}
 else
-    podman push ${_container_name}:${_container_tag}
-    podman push ${_container_name}:${_container_tag} ${_container_name}:latest
+    skopeo copy docker-archive:${_container_archive} docker://${_container_name}:${_container_tag}
+    skopeo copy docker-archive:${_container_archive} docker://${_container_name}:latest
     if [ -n "${git_tag}" ]; then
-        podman push ${_container_name}:${_container_tag} ${_container_name}:${git_tag}
+        skopeo copy docker-archive:${_container_archive} docker://${_container_name}:${git_tag}
     fi
 fi
 sudo mv ${_container_archive} ${_image_cache}/
