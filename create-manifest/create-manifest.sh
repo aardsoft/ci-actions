@@ -15,7 +15,12 @@ _manifest="local-manifest-$$"
 podman manifest create ${_manifest}
 
 for _arch in ${architectures}; do
-    podman manifest add ${_manifest} docker://${container_name}:${container_tag}-${_arch}
+    case "${_arch}" in
+        aarch64) _oci_arch="--arch arm64 --variant v8" ;;
+        amd64)   _oci_arch="--arch amd64" ;;
+        *)       _oci_arch="--arch ${_arch}" ;;
+    esac
+    podman manifest add ${_manifest} ${_oci_arch} docker://${container_name}:${container_tag}-${_arch}
 done
 
 podman manifest push --all ${_manifest} docker://${container_name}:${container_tag}
