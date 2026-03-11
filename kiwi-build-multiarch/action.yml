@@ -1,0 +1,82 @@
+name: 'Multi-arch kiwi build'
+description: 'Build a kiwi container image for the native arch and optionally additional archs via QEMU emulation, then combine into a multi-arch manifest'
+
+inputs:
+  image-directory:
+    required: True
+  repository:
+    required: False
+    default: https://download.opensuse.org/distribution/leap/15.6/repo/oss
+  extra-repositories:
+    required: False
+    default: ''
+  git-tag:
+    required: False
+    default: ''
+  extra-architectures:
+    description: 'Space-separated architectures to build via QEMU emulation in addition to the native arch (e.g. "aarch64")'
+    required: False
+    default: ''
+  arch-suffix:
+    description: 'Push image with this arch suffix only; used in native multi-arch workflows where manifest creation is a separate job'
+    required: False
+    default: ''
+  kiwi-extra-args:
+    required: False
+    default: ''
+  kiwi-debug:
+    required: False
+    default: ''
+
+outputs:
+  container-name:
+    description: 'Container image name from kiwi metadata'
+    value: ${{ steps.kiwi-build-native.outputs.container-name }}
+  container-tag:
+    description: 'Container version tag from kiwi metadata'
+    value: ${{ steps.kiwi-build-native.outputs.container-tag }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: 'Login to GitHub Container Registry'
+      uses: redhat-actions/podman-login@v1
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+
+    - name: Build native image
+      id: kiwi-build-native
+      uses: aardsoft/ci-actions/kiwi-build@master
+      with:
+        image-directory: ${{ inputs.image-directory }}
+        repository: ${{ inputs.repository }}
+        extra-repositories: ${{ inputs.extra-repositories }}
+        kiwi-extra-args: ${{ inputs.kiwi-extra-args }}
+        kiwi-debug: ${{ inputs.kiwi-debug }}
+        # Pass git-tag only in single-arch mode; multi-arch mode delegates to manifest creation
+        git-tag: ${{ inputs.extra-architectures == '' && inputs.arch-suffix == '' && inputs.git-tag || '' }}
+        # In emulation mode force amd64 suffix; in native-runner mode use the passed suffix; otherwise no suffix
+        arch-suffix: ${{ inputs.extra-architectures != '' && 'amd64' || inputs.arch-suffix }}
+
+    - name: Build aarch64 (QEMU emulation)
+      if: ${{ contains(inputs.extra-architectures, 'aarch64') }}
+      uses: aardsoft/ci-actions/kiwi-build@master
+      with:
+        image-directory: ${{ inputs.image-directory }}
+        repository: ${{ inputs.repository }}
+        extra-repositories: ${{ inputs.extra-repositories }}
+        kiwi-extra-args: ${{ inputs.kiwi-extra-args }}
+        kiwi-debug: ${{ inputs.kiwi-debug }}
+        target-arch: aarch64
+        arch-suffix: aarch64
+
+    - name: Create multi-arch manifest
+      if: ${{ inputs.extra-architectures != '' }}
+      uses: aardsoft/ci-actions/create-manifest@master
+      with:
+        container-name: ${{ steps.kiwi-build-native.outputs.container-name }}
+        container-tag: ${{ steps.kiwi-build-native.outputs.container-tag }}
+        architectures: amd64 ${{ inputs.extra-architectures }}
+        git-tag: ${{ inputs.git-tag }}
