@@ -41,11 +41,10 @@ if [ -n "${_derived_container}" ]; then
         echo "exists"
     else
         case "${_target_arch}" in
-            aarch64) _pull_override="--override-arch arm64 --override-variant v8" ;;
-            *)       _pull_override="" ;;
+            aarch64) _skopeo_override="--override-arch arm64 --override-variant v8" ;;
+            *)       _skopeo_override="" ;;
         esac
-        podman pull ${_pull_override} "${_derived_container}"
-        podman save "${_derived_container}" -o "${_derived_file_path}"
+        skopeo copy ${_skopeo_override} docker://${_derived_container} docker-archive:${_derived_file_path}
     fi
 fi
 
