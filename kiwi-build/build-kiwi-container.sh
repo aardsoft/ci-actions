@@ -9,6 +9,14 @@ cd ${image_dir}
 _arch=`uname -m`
 _target_arch=${target_arch:-${_arch}}
 
+if [ "${_target_arch}" != "${_arch}" ]; then
+    _binfmt_name="qemu-${_target_arch}"
+    if [ ! -f "/proc/sys/fs/binfmt_misc/${_binfmt_name}" ] && [ ! -f "/proc/sys/fs/binfmt_misc/${_binfmt_name}-static" ]; then
+        echo "WARNING: binfmt_misc handler for ${_target_arch} may not be registered." >&2
+        echo "         The qemu-binfmt DaemonSet must be running on this node." >&2
+    fi
+fi
+
 # for now we just hope that for multiple kiwi files the first one is what we want
 _kiwi_file=(*.kiwi)
 _image_specification=`xmllint --xpath 'string(//specification)' ${_kiwi_file}`
@@ -32,7 +40,11 @@ if [ -n "${_derived_container}" ]; then
     if [ -f "${_derived_file_path}" ]; then
         echo "exists"
     else
-        podman pull "${_derived_container}"
+        case "${_target_arch}" in
+            aarch64) _pull_override="--override-arch arm64 --override-variant v8" ;;
+            *)       _pull_override="" ;;
+        esac
+        podman pull ${_pull_override} "${_derived_container}"
         podman save "${_derived_container}" -o "${_derived_file_path}"
     fi
 fi
