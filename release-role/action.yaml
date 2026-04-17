@@ -5,10 +5,6 @@ inputs:
   asset-path:
     description: 'A single file path or a glob pattern (e.g., dist/*)'
     required: false
-  github_token:
-    description: 'Token to use for checkout'
-    required: false
-    default: ${{ github.token }}
 
 runs:
   using: "composite"
@@ -26,7 +22,8 @@ runs:
       if: steps.check-repo.outputs.exists != 'true'
       uses: actions/checkout@v6
       with:
-        token: ${{ inputs.github_token }}
+        fetch-depth: 0
+        token: ${{ inputs.github-token }}
     - name: Setup environment
       id: setup
       run: |
@@ -58,31 +55,17 @@ runs:
         tar cvf "${{ steps.setup.outputs.path }}/${{ steps.setup.outputs.role_name }}-$TAG.tar.gz" \
         --exclude doc/ --exclude .git --exclude README.org .
     - name: Extract Changelog
-      shell: bash
-      id: extract
-      run: |
-        TAG=${GITHUB_REF#refs/tags/}
-        PREV=$(git describe --tags --abbrev=0 $TAG^ 2>/dev/null || git rev-list --max-parents=0 HEAD)
-
-        # Pull everything after 'Changelog:' across all commits in range
-        git log $PREV..$TAG --pretty=format:"%b" | \
-        awk '/^Changelog:/ {p=1; sub(/^Changelog:[ \t]*/, ""); print; next} p' > RELEASE_NOTES.md
-
-        if [ ! -s RELEASE_NOTES.md ]; then
-          echo "No changelog found. Cleaning up tag..."
-          gh release delete $TAG --cleanup-tag --yes
-          exit 1
-        fi
-      env:
-        GH_TOKEN: ${{ inputs.github-token }}
-
+      uses: aardsoft/ci-actions/extract-changelog@master
+      id: changelog
+      with:
+        github-token: ${{ inputs.github-token }}
     - name: Create GitHub Release
       shell: bash
       run: |
         gh release create ${{ github.ref_name }} \
           --title "Release ${{ github.ref_name }}" \
-          --notes-file RELEASE_NOTES.md \
-          ${{ steps.setup-dir.outputs.path }}/*
+          --notes-file ${{ steps.changelog.outputs.changelog-path }} \
+          ${{ steps.setup.outputs.path }}/*
           ${{ inputs.asset-path }}
       env:
         GH_TOKEN: ${{ inputs.github-token }}
