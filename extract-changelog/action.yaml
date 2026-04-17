@@ -1,0 +1,43 @@
+name: 'Changelog Extractor'
+description: 'Extracts multi-paragraph changelogs and fails/cleans up if missing.'
+inputs:
+  github-token:
+    description: 'GitHub Token for tag cleanup'
+    required: true
+outputs:
+  changelog-path:
+    description: 'Path to the generated changelog file'
+    value: 'RELEASE_CHANGELOG.md'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Extract & Format Changelog
+      shell: bash
+      run: |
+        TAG_NAME=${GITHUB_REF#refs/tags/}
+        DATE=$(date +'%Y-%m-%d')
+
+        # Header for the file
+        echo "## Release $TAG_NAME ($DATE)" > RELEASE_CHANGELOG.md
+        echo "" >> RELEASE_CHANGELOG.md
+
+        # Find previous tag or use first commit if no previous tag exists
+        PREV_TAG=$(git describe --tags --abbrev=0 $TAG_NAME^ 2>/dev/null || git rev-list --max-parents=0 HEAD)
+
+        # Extract everything after 'Changelog:' until end of commit message body
+        # Appends paragraphs and lists from all commits in range
+        git log $PREV_TAG..$TAG_NAME --pretty=format:"%b" | \
+        awk -v IGNORECASE=1 '/^changelog:/ {p=1; sub(/^changelog:[ \t]*/, ""); print; next} p' >> RELEASE_CHANGELOG.md
+
+        # Check if the extracted body part (after the header) is empty
+        BODY_CONTENT=$(sed '1,3d' RELEASE_CHANGELOG.md | tr -d '[:space:]')
+        if [ -z "$BODY_CONTENT" ]; then
+          echo "ERROR: No 'Changelog:' content found in commits since $PREV_TAG."
+          echo "Deleting remote tag and failing release..."
+          gh push origin --delete $TAG
+          gh release delete $TAG_NAME --cleanup-tag --yes
+          exit 1
+        fi
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}

@@ -1,0 +1,88 @@
+name: 'Standard Release'
+inputs:
+  github-token:
+    required: true
+  asset-path:
+    description: 'A single file path or a glob pattern (e.g., dist/*)'
+    required: false
+  github_token:
+    description: 'Token to use for checkout'
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check if repo is already checked out
+      id: check-repo
+      run: |
+        if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+        echo "exists=true" >> "$GITHUB_OUTPUT"
+        else
+        echo "exists=false" >> "$GITHUB_OUTPUT"
+        fi
+      shell: bash
+    - name: Checkout Repository
+      if: steps.check-repo.outputs.exists != 'true'
+      uses: actions/checkout@v6
+      with:
+        token: ${{ inputs.github_token }}
+    - name: Setup environment
+      id: setup
+      run: |
+        REPO_NAME="${{ github.event.repository.name }}"
+
+        # Remove 'ansible-role-'if it's at the start
+        ROLE_NAME="${REPO_NAME#ansible-role-}"
+
+        # Create a unique path in the runner's temp folder
+        export RELEASE_PATH="${{ runner.temp }}/release_artifacts"
+        mkdir -p "$RELEASE_PATH"
+
+        # Save variables to the step outputs
+        echo "path=$RELEASE_PATH" >> "$GITHUB_OUTPUT"
+        echo "role_name=$ROLE_NAME" >> "$GITHUB_OUTPUT"
+      shell: bash
+    - name: Build raw doc archive
+      shell: bash
+      id: raw-doc
+      run: |
+        tar cvf "${{ steps.setup.outputs.path }}/doc-org.tar.gz" -C doc .
+    - name: Create role archive
+      shell: bash
+      id: role-archive
+      run: |
+        TAG=${GITHUB_REF#refs/tags/}
+
+        echo "version: $TAG\name: ${{ steps.setup.outputs.role_name }}" > role-metadata.yml
+        tar cvf "${{ steps.setup.outputs.path }}/${{ steps.setup.outputs.role_name }}-$TAG.tar.gz" \
+        --exclude doc/ --exclude .git --exclude README.org .
+    - name: Extract Changelog
+      shell: bash
+      id: extract
+      run: |
+        TAG=${GITHUB_REF#refs/tags/}
+        PREV=$(git describe --tags --abbrev=0 $TAG^ 2>/dev/null || git rev-list --max-parents=0 HEAD)
+
+        # Pull everything after 'Changelog:' across all commits in range
+        git log $PREV..$TAG --pretty=format:"%b" | \
+        awk '/^Changelog:/ {p=1; sub(/^Changelog:[ \t]*/, ""); print; next} p' > RELEASE_NOTES.md
+
+        if [ ! -s RELEASE_NOTES.md ]; then
+          echo "No changelog found. Cleaning up tag..."
+          gh release delete $TAG --cleanup-tag --yes
+          exit 1
+        fi
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+
+    - name: Create GitHub Release
+      shell: bash
+      run: |
+        gh release create ${{ github.ref_name }} \
+          --title "Release ${{ github.ref_name }}" \
+          --notes-file RELEASE_NOTES.md \
+          ${{ steps.setup-dir.outputs.path }}/*
+          ${{ inputs.asset-path }}
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
