@@ -40,6 +40,9 @@ runs:
         echo "path=$RELEASE_PATH" >> "$GITHUB_OUTPUT"
         echo "role_name=$ROLE_NAME" >> "$GITHUB_OUTPUT"
       shell: bash
+    - name: Extract full changelog
+      uses: aardsoft/ci-actions/extract-full-changelog@master
+      id: full-changelog
     - name: Build raw doc archive
       shell: bash
       id: raw-doc
@@ -50,6 +53,11 @@ runs:
       id: role-archive
       run: |
         TAG=${GITHUB_REF#refs/tags/}
+
+        # we want the changelog both in the tar and release artifacts
+        cp "${{ steps.full-changelog.outputs.changelog-path }}" CHANGELOG.md
+        cp "${{ steps.full-changelog.outputs.changelog-path }}" "${{ steps.setup.outputs.path }}/CHANGELOG.md"
+        rm -f "${{ steps.full-changelog.outputs.changelog-path }}"
 
         echo "version: $TAG\name: ${{ steps.setup.outputs.role_name }}" > role-metadata.yml
         tar cvf "${{ steps.setup.outputs.path }}/${{ steps.setup.outputs.role_name }}-$TAG.tar.gz" \

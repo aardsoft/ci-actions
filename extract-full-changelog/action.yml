@@ -1,0 +1,19 @@
+name: 'Full Changelog Extractor'
+description: 'Extracts a complete changelog for a project, with fallback.'
+outputs:
+  changelog-path:
+    description: 'Path to the generated changelog file'
+    value: ${{ steps.extract.outputs.changelog-path }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Extract & Format Changelog
+      id: extract
+      shell: bash
+      run: |
+        chmod +x ${{ github.action_path }}/extract.sh
+        ${{ github.action_path }}/extract.sh
+        echo "changelog-path=FULL_CHANGELOG.md" >> $GITHUB_OUTPUT
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
