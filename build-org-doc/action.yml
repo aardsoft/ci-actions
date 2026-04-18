@@ -1,0 +1,32 @@
+name: 'Build org documentation'
+description: 'Build HTML out of an org doc directory'
+
+inputs:
+  publish-directory:
+    required: True
+    default: /tmp/publish
+  github-token:
+    required: True
+
+runs:
+  using: "composite"
+  steps:
+    - run: |
+        mkdir -p ${{inputs.publish-directory}}
+        mkdir -p doc
+        if ! [ -f export-settings.user ]; then
+          echo "(setq org-page-default-stylesheets t)" > export-settings.user
+        fi
+      shell: bash
+
+    - name: Build page
+      uses: aardsoft/publish-org-tree@master
+      with:
+        publish-directory: "${{inputs.publish-directory}}"
+      env:
+        org_publish_function: org-html-publish-to-templated-html
+        project_directory: doc
+        default_page_template: page_with_inline_sidebar.html
+        template_directory: ../style/templates
+        style_directory: ../style
+        GH_TOKEN: ${{inputs.github-token}}
