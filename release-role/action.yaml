@@ -53,7 +53,7 @@ runs:
 
         echo "version: $TAG\name: ${{ steps.setup.outputs.role_name }}" > role-metadata.yml
         tar cvf "${{ steps.setup.outputs.path }}/${{ steps.setup.outputs.role_name }}-$TAG.tar.gz" \
-        --exclude doc/ --exclude .git --exclude README.org .
+        --exclude ./doc --exclude .git --exclude .github  --exclude .pkg_meta --exclude README.org .
     - name: Extract Changelog
       uses: aardsoft/ci-actions/extract-changelog@master
       id: changelog
