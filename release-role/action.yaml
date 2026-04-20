@@ -64,9 +64,11 @@ runs:
 
         echo "version: $TAG
         description: ${pkg_description}
+        repository_name: ${pkg_repository_name:-${{ github.repository }}}
+        repository_server: ${pkg_repository_server:-${{ github.server_url }}}
         name: ${{ steps.setup.outputs.role_name }}" > role-metadata.yml
         tar cvf "${{ steps.setup.outputs.path }}/${{ steps.setup.outputs.role_name }}-$TAG.tar.gz" \
-        --exclude ./doc --exclude .git --exclude .github  --exclude .pkg_meta --exclude README.org .
+        --exclude ./doc --exclude .gitignore --exclude .git --exclude .github  --exclude .pkg_meta --exclude README.org .
     - name: Build HTML documentation
       uses: aardsoft/ci-actions/build-org-doc@master
       id: org-doc
