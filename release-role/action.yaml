@@ -39,6 +39,12 @@ runs:
         # Save variables to the step outputs
         echo "path=$RELEASE_PATH" >> "$GITHUB_OUTPUT"
         echo "role_name=$ROLE_NAME" >> "$GITHUB_OUTPUT"
+
+        if ! [ -d doc ]; then
+          echo "WARNING, creating documentation stub"
+          mkdir doc
+          echo "#+TITLE: Ansible role: ${ROLE_NAME}" >doc/index.org
+        fi
       shell: bash
     - name: Extract full changelog
       uses: aardsoft/ci-actions/extract-full-changelog@master
