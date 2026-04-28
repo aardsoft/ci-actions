@@ -47,7 +47,7 @@ runs:
       shell: bash
       id: raw-doc
       run: |
-        tar cvf "${{ steps.setup.outputs.path }}/doc-org.tar.gz" -C doc .
+        tar czvf "${{ steps.setup.outputs.path }}/doc-org.tar.gz" -C doc .
     - name: Create role archive
       shell: bash
       id: role-archive
@@ -67,7 +67,7 @@ runs:
         repository_name: ${pkg_repository_name:-${{ github.repository }}}
         repository_server: ${pkg_repository_server:-${{ github.server_url }}}
         name: ${{ steps.setup.outputs.role_name }}" > role-metadata.yml
-        tar cvf "${{ steps.setup.outputs.path }}/${{ steps.setup.outputs.role_name }}-$TAG.tar.gz" \
+        tar czvf "${{ steps.setup.outputs.path }}/${{ steps.setup.outputs.role_name }}-$TAG.tar.gz" \
         --exclude ./doc --exclude .gitignore --exclude .git --exclude .github  --exclude .pkg_meta --exclude README.org .
     - name: Build HTML documentation
       uses: aardsoft/ci-actions/build-org-doc@master
@@ -80,7 +80,7 @@ runs:
       id: org-doc-pack
       run: |
         TAG=${GITHUB_REF#refs/tags/}
-        tar cvf "${{ steps.setup.outputs.path }}/${{ steps.setup.outputs.role_name }}-doc-$TAG.tar.gz" -C /tmp/org-doc .
+        tar czvf "${{ steps.setup.outputs.path }}/${{ steps.setup.outputs.role_name }}-doc-$TAG.tar.gz" -C /tmp/org-doc .
     - name: Extract Changelog
       uses: aardsoft/ci-actions/extract-changelog@master
       id: changelog
