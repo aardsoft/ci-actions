@@ -69,7 +69,7 @@ runs:
         rm -f "${{ steps.full-changelog.outputs.changelog-path }}"
 
         echo "version: $TAG
-        description: ${pkg_description}
+        description: ${pkg_description:-N/A}
         repository_name: ${pkg_repository_name:-${{ github.repository }}}
         repository_server: ${pkg_repository_server:-${{ github.server_url }}}
         name: ${{ steps.setup.outputs.role_name }}" > role-metadata.yml
